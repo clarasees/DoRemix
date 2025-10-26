@@ -1,0 +1,96 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'PPModelPlastic-Medium', sans-serif;
+    background: #000;
+    color: #000;
+    min-height: 100vh;
+    overflow: auto;
+}
+
+.canvas {
+    width: 100%;
+    min-height: 100vh;
+    position: relative;
+    padding-bottom: 200px;
+}
+
+.block {
+    position: absolute;
+    padding: 8px 8px;
+    font-size: 28px;
+    text-transform: lowercase;
+    letter-spacing: -1px;
+    white-space: nowrap;
+    cursor: grab;
+    border: 2px solid #000;
+    box-sizing: border-box;
+}
+
+.block:active {
+    cursor: grabbing;
+}
+
+.block.placed {
+    animation: blockSnap 0.15s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+.block.dragging {
+    opacity: 0.7;
+    z-index: 1000;
+    cursor: grabbing;
+}
+
+.block.completed {
+    cursor: grab;
+}
+
+@keyframes blockSnap {
+    0% {
+        transform: scale(0.95);
+    }
+    50% {
+        transform: scale(1.02);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.option-text {
+    position: absolute;
+    padding: 8px 12px;
+    font-size: 28px;
+    text-transform: lowercase;
+    letter-spacing: -1px;
+    white-space: nowrap;
+    color: #fff;
+    background-color: #000;
+    border: 2px solid #fff;
+    opacity: 0.4;
+    transition: opacity 0.1s;
+    pointer-events: none;
+    line-height: 1.5;
+    box-sizing: border-box;
+}
+
+.option-text.selected {
+    opacity: 1;
+}
+
+.instructions {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    line-height: 1.6;
+}
+ 
