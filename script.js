@@ -150,6 +150,7 @@ let selectedIndex = 0;
 let optionElements = [];
 let isBuilding = true;
 let draggedWord = null;
+let optionVerticalOffset = 0;
 
 const colors = ['#FF006E', '#FB5607', '#FFBE0B', '#8338EC', '#3A86FF', '#06FFC4', '#00F5FF', '#FF2E63'];
 
@@ -277,6 +278,8 @@ function clearOptions() {
     optionElements = [];
 }
 
+//WORD BLOCK OPTIONS
+
 function renderOptions() {
     clearOptions();
 
@@ -298,10 +301,10 @@ function renderOptions() {
 
         if (lastBlock.isHorizontal) {
             optionEl.style.left = (lastBlock.x + lastBlock.width + 20) + 'px';
-            optionEl.style.top = (lastBlock.y + index * lineHeight) + 'px';
+            optionEl.style.top = (lastBlock.y + index * lineHeight + optionVerticalOffset) + 'px';
         } else {
             optionEl.style.left = (lastBlock.x + 20) + 'px';
-            optionEl.style.top = (lastBlock.y + lastBlock.width + index * lineHeight) + 'px';
+            optionEl.style.top = (lastBlock.y + lastBlock.width + index * lineHeight + optionVerticalOffset) + 'px';
         }
 
         document.getElementById('canvas').appendChild(optionEl);
@@ -349,6 +352,7 @@ function selectOption() {
 
         addBlock(word, newX, newY, newIsHorizontal);
         selectedIndex = 0;
+        optionVerticalOffset = 0;
         renderOptions();
     }
 }
@@ -385,7 +389,7 @@ function endSentence() {
 
     document.getElementById('canvas').appendChild(periodBlock);
 
-    // Auto-scroll to show th//.e period
+    // Auto-scroll to show the period
     setTimeout(function() {
         updateCanvasSize();
         periodBlock.scrollIntoView({
@@ -406,6 +410,7 @@ function startNewSentence(word, x, y) {
     isBuilding = true;
     currentSentence = [];
     selectedIndex = 0;
+    optionVerticalOffset = 0;
     addBlock(word, x, y, true);
     renderOptions();
 }
@@ -415,6 +420,7 @@ function undo() {
         const lastBlock = currentSentence.pop();
         lastBlock.element.remove();
         selectedIndex = 0;
+        optionVerticalOffset = 0;
         renderOptions();
     }
 }
@@ -441,15 +447,22 @@ document.addEventListener('keydown', function(e) {
     if (!isBuilding) return;
 
     const options = getNextOptions();
+    const lineHeight = 50;
 
     if (e.key === 'ArrowDown') {
         e.preventDefault();
-        selectedIndex = (selectedIndex + 1) % options.length;
-        renderOptions();
+        if (selectedIndex < options.length - 1) {
+            selectedIndex++;
+            optionVerticalOffset -= lineHeight; // Move options up
+            renderOptions();
+        }
     } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        selectedIndex = (selectedIndex - 1 + options.length) % options.length;
-        renderOptions();
+        if (selectedIndex > 0) {
+            selectedIndex--;
+            optionVerticalOffset += lineHeight; // Move options down
+            renderOptions();
+        }
     } else if (e.key === ' ') {
         e.preventDefault();
         selectOption();
