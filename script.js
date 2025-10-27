@@ -1,3 +1,240 @@
+// AUDIO RECORDING AND MANIPULATION
+let audioContext;
+let audioBuffer;
+let audioNotes = {}; // Store audio buffers for each note
+let mediaRecorder;
+let audioChunks = [];
+
+// Multiple arpeggio patterns (in semitones from C4)
+const arpeggioPatterns = [
+    // C Major ascending
+    [0, 4, 7, 12, 16, 19, 24, 28, 31, 36],
+
+    // C Major descending
+    [36, 31, 28, 24, 19, 16, 12, 7, 4, 0],
+
+    // C Major up and down
+    [0, 4, 7, 12, 7, 4, 0, 12, 16, 19],
+
+    // A Minor (relative minor)
+    [9, 12, 16, 21, 24, 28, 33, 36, 40, 45],
+
+    // F Major
+    [5, 9, 12, 17, 21, 24, 29, 33, 36, 41],
+
+    // G Major
+    [7, 11, 14, 19, 23, 26, 31, 35, 38, 43],
+
+    // C Major wide spread
+    [0, 7, 16, 24, 31, 40, 48, 55, 64, 72],
+
+    // Chromatic climb from C
+    [0, 1, 2, 4, 5, 7, 9, 11, 12, 14]
+];
+
+let currentArpeggioIndex = 0; // Track which arpeggio pattern to use
+
+// Initialize audio context
+function initAudio() {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+}
+
+// Start recording
+async function startRecording() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+
+        mediaRecorder.addEventListener('dataavailable', function(event) {
+            audioChunks.push(event.data);
+        });
+
+        mediaRecorder.addEventListener('stop', async function() {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+            const arrayBuffer = await audioBlob.arrayBuffer();
+            audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+            document.getElementById('recording-status').textContent = 'Recording saved! Click Continue to start.';
+            document.getElementById('continue-btn').style.display = 'block';
+
+            // Stop all tracks to release the microphone
+            stream.getTracks().forEach(track => track.stop());
+        });
+
+        mediaRecorder.start();
+        document.getElementById('record-btn').style.display = 'none';
+        document.getElementById('recording-status').textContent = 'Recording... (1 second)';
+
+        // Automatically stop recording after 1 second
+        setTimeout(function() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+                document.getElementById('recording-status').textContent = 'Processing...';
+            }
+        }, 1000);
+    } catch (error) {
+        console.error('Error accessing microphone:', error);
+        document.getElementById('recording-status').textContent = 'Error: Could not access microphone';
+    }
+}
+
+// Stop recording
+function stopRecording() {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+        document.getElementById('stop-btn').style.display = 'none';
+        document.getElementById('recording-status').textContent = 'Processing...';
+    }
+}
+
+// Create pitch-shifted version of audio for a specific note
+function createNoteAudio(buffer, semitones) {
+    const rate = Math.pow(2, semitones / 12);
+    const offlineContext = new OfflineAudioContext(
+        buffer.numberOfChannels,
+        buffer.length / rate,
+        buffer.sampleRate
+    );
+
+    const source = offlineContext.createBufferSource();
+    source.buffer = buffer;
+    source.playbackRate.value = rate;
+    source.connect(offlineContext.destination);
+    source.start(0);
+
+    return offlineContext.startRendering();
+}
+
+// Generate audio samples for all unique notes across all arpeggio patterns
+async function generateAudioVariants() {
+    if (!audioBuffer) return;
+
+    // Collect all unique semitone values from all patterns
+    const allSemitones = new Set();
+    arpeggioPatterns.forEach(pattern => {
+        pattern.forEach(semitone => allSemitones.add(semitone));
+    });
+
+    // Generate audio for each unique semitone value
+    for (const semitone of allSemitones) {
+        try {
+            const noteBuffer = await createNoteAudio(audioBuffer, semitone);
+            audioNotes[semitone] = noteBuffer; // Store by semitone value
+        } catch (error) {
+            console.error(`Error creating note at ${semitone} semitones:`, error);
+        }
+    }
+}
+
+// Get next note (semitone value) in sequence from current arpeggio pattern
+function getNextNote() {
+    const currentPattern = arpeggioPatterns[currentArpeggioIndex];
+    const semitone = currentPattern[currentNoteIndex];
+    currentNoteIndex = (currentNoteIndex + 1) % currentPattern.length;
+    return semitone;
+}
+
+// Switch to next arpeggio pattern
+function nextArpeggioPattern() {
+    currentArpeggioIndex = (currentArpeggioIndex + 1) % arpeggioPatterns.length;
+}
+
+// Play audio for a specific semitone value with optional callback
+function playNoteAudio(semitone, onEndedCallback) {
+    if (!audioNotes[semitone]) return;
+
+    const source = audioContext.createBufferSource();
+    source.buffer = audioNotes[semitone];
+    source.connect(audioContext.destination);
+
+    if (onEndedCallback) {
+        source.onended = onEndedCallback;
+    }
+
+    source.start(0);
+    return source;
+}
+
+// Add pulse animation that respects existing transforms
+function addPulseAnimation(element, isHorizontal) {
+    element.classList.add('pulsing');
+
+    const pulseKeyframes = [
+        { transform: isHorizontal ? 'scale(1)' : 'rotate(90deg) scale(1)', opacity: 1 },
+        { transform: isHorizontal ? 'scale(1.15)' : 'rotate(90deg) scale(1.15)', opacity: 0.8 },
+        { transform: isHorizontal ? 'scale(1)' : 'rotate(90deg) scale(1)', opacity: 1 }
+    ];
+
+    const animation = element.animate(pulseKeyframes, {
+        duration: 400,
+        easing: 'ease-in-out'
+    });
+
+    return animation;
+}
+
+// Play back entire sentence as a melody (sequentially)
+async function playSentenceMelody(sentenceBlocks) {
+    for (let i = 0; i < sentenceBlocks.length; i++) {
+        const block = sentenceBlocks[i];
+
+        // Add pulse animation that respects rotation
+        addPulseAnimation(block.element, block.isHorizontal);
+
+        // Play the note and wait for it to finish
+        await new Promise(function(resolve) {
+            playNoteAudio(block.noteSemitone, function() {
+                block.element.classList.remove('pulsing');
+                resolve();
+            });
+        });
+
+        // Small gap between notes
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
+}
+
+// Play all sentences simultaneously (in unison)
+async function playAllSentencesInUnison() {
+    if (sentences.length === 0) return;
+
+    // Get the longest sentence to know how long to run
+    let maxLength = 0;
+    sentences.forEach(function(sentence) {
+        if (sentence.length > maxLength) {
+            maxLength = sentence.length;
+        }
+    });
+
+    // Play all sentences at the same time
+    const sentencePromises = sentences.map(function(sentence) {
+        return playSentenceMelody(sentence);
+    });
+
+    // Wait for all sentences to finish
+    await Promise.all(sentencePromises);
+}
+
+// Setup splash screen
+window.addEventListener('DOMContentLoaded', function() {
+    initAudio();
+
+    document.getElementById('record-btn').addEventListener('click', startRecording);
+
+    document.getElementById('continue-btn').addEventListener('click', async function() {
+        document.getElementById('recording-status').textContent = 'Generating audio variants...';
+        await generateAudioVariants();
+
+        document.getElementById('splash-screen').classList.add('hidden');
+        // Initialize the main app
+        const startX = window.innerWidth / 2 - 50;
+        const startY = window.innerHeight / 2 - 22;
+        addBlock('we', startX, startY, true);
+        renderOptions();
+    });
+});
+
 const rules = {
     'material': ['that', 'and'],
     'affordance': ['of', 'and'],
@@ -150,7 +387,7 @@ let selectedIndex = 0;
 let optionElements = [];
 let isBuilding = true;
 let draggedWord = null;
-let optionVerticalOffset = 0;
+let currentNoteIndex = 0; // Track which note to use next in the arpeggio
 
 const colors = ['#FF006E', '#FB5607', '#FFBE0B', '#8338EC', '#3A86FF', '#06FFC4', '#00F5FF', '#FF2E63'];
 
@@ -204,6 +441,9 @@ function addBlock(word, x, y, isHorizontal, isCompleted) {
         block.style.transform = 'rotate(90deg)';
     }
 
+    // Assign the next note in the arpeggio sequence (semitone value)
+    const noteSemitone = isCompleted ? 0 : getNextNote();
+
     const blockData = {
         element: block,
         word: word,
@@ -211,7 +451,8 @@ function addBlock(word, x, y, isHorizontal, isCompleted) {
         y: y,
         width: size.width,
         height: size.height,
-        isHorizontal: isHorizontal
+        isHorizontal: isHorizontal,
+        noteSemitone: noteSemitone
     };
 
     setTimeout(function() {
@@ -299,12 +540,15 @@ function renderOptions() {
         }
         optionEl.textContent = option.toUpperCase();
 
+        // Position options relative to selected index - selected option stays at baseline
+        const offsetFromSelected = (index - selectedIndex) * lineHeight;
+
         if (lastBlock.isHorizontal) {
             optionEl.style.left = (lastBlock.x + lastBlock.width + 20) + 'px';
-            optionEl.style.top = (lastBlock.y + index * lineHeight + optionVerticalOffset) + 'px';
+            optionEl.style.top = (lastBlock.y + offsetFromSelected) + 'px';
         } else {
             optionEl.style.left = (lastBlock.x + 20) + 'px';
-            optionEl.style.top = (lastBlock.y + lastBlock.width + index * lineHeight + optionVerticalOffset) + 'px';
+            optionEl.style.top = (lastBlock.y + lastBlock.width + offsetFromSelected) + 'px';
         }
 
         document.getElementById('canvas').appendChild(optionEl);
@@ -350,14 +594,20 @@ function selectOption() {
             newY = lastBlock.y + lastBlock.width + gap;
         }
 
-        addBlock(word, newX, newY, newIsHorizontal);
+        const newBlock = addBlock(word, newX, newY, newIsHorizontal);
+
+        // Play audio for the selected word with pulse animation
+        addPulseAnimation(newBlock.element, newBlock.isHorizontal);
+        playNoteAudio(newBlock.noteSemitone, function() {
+            newBlock.element.classList.remove('pulsing');
+        });
+
         selectedIndex = 0;
-        optionVerticalOffset = 0;
         renderOptions();
     }
 }
 
-function endSentence() {
+async function endSentence() {
     if (currentSentence.length === 0) return;
 
     const lastBlock = currentSentence[currentSentence.length - 1];
@@ -372,12 +622,12 @@ function endSentence() {
     }
 
     const periodBlock = document.createElement('div');
-    periodBlock.className = 'block completed';
+    periodBlock.className = 'block completed period-block';
     periodBlock.textContent = '.';
     periodBlock.style.backgroundColor = getColorForWord('period');
     periodBlock.style.color = '#000';
     periodBlock.style.left = periodX + 'px';
-    periodBlock.style.top = periodY + 'px'; 
+    periodBlock.style.top = periodY + 'px';
     periodBlock.style.padding = '8px 12px';
     periodBlock.style.fontSize = '28px';
     periodBlock.style.fontWeight = '900';
@@ -386,6 +636,15 @@ function endSentence() {
     periodBlock.style.display = 'flex';
     periodBlock.style.alignItems = 'center';
     periodBlock.style.justifyContent = 'center';
+    periodBlock.style.cursor = 'pointer';
+
+    // Store reference to sentence blocks for playback
+    const sentenceToPlay = currentSentence.slice();
+
+    // Add click handler to play back the sentence melody
+    periodBlock.addEventListener('click', function() {
+        playSentenceMelody(sentenceToPlay);
+    });
 
     document.getElementById('canvas').appendChild(periodBlock);
 
@@ -404,14 +663,27 @@ function endSentence() {
 
     sentences.push(currentSentence.slice());
     currentSentence = [];
+
+    // Switch to next arpeggio pattern for the next sentence
+    nextArpeggioPattern();
+
+    // Play back the sentence melody automatically
+    await playSentenceMelody(sentenceToPlay);
 }
 
 function startNewSentence(word, x, y) {
     isBuilding = true;
     currentSentence = [];
     selectedIndex = 0;
-    optionVerticalOffset = 0;
-    addBlock(word, x, y, true);
+    currentNoteIndex = 0; // Reset note sequence for new sentence
+    const newBlock = addBlock(word, x, y, true);
+
+    // Play audio for the dragged word with pulse animation
+    addPulseAnimation(newBlock.element, newBlock.isHorizontal);
+    playNoteAudio(newBlock.noteSemitone, function() {
+        newBlock.element.classList.remove('pulsing');
+    });
+
     renderOptions();
 }
 
@@ -420,7 +692,9 @@ function undo() {
         const lastBlock = currentSentence.pop();
         lastBlock.element.remove();
         selectedIndex = 0;
-        optionVerticalOffset = 0;
+        // Move note index back so next word uses the correct note
+        const currentPattern = arpeggioPatterns[currentArpeggioIndex];
+        currentNoteIndex = (currentNoteIndex - 1 + currentPattern.length) % currentPattern.length;
         renderOptions();
     }
 }
@@ -444,23 +718,27 @@ canvas.addEventListener('drop', function(e) {
 });
 
 document.addEventListener('keydown', function(e) {
+    // Handle Enter key to play all sentences (works anytime)
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        playAllSentencesInUnison();
+        return;
+    }
+
     if (!isBuilding) return;
 
     const options = getNextOptions();
-    const lineHeight = 50;
 
     if (e.key === 'ArrowDown') {
         e.preventDefault();
         if (selectedIndex < options.length - 1) {
             selectedIndex++;
-            optionVerticalOffset -= lineHeight; // Move options up
             renderOptions();
         }
     } else if (e.key === 'ArrowUp') {
         e.preventDefault();
         if (selectedIndex > 0) {
             selectedIndex--;
-            optionVerticalOffset += lineHeight; // Move options down
             renderOptions();
         }
     } else if (e.key === ' ') {
@@ -475,7 +753,4 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
-const startX = window.innerWidth / 2 - 50;
-const startY = window.innerHeight / 2 - 22;
-addBlock('we', startX, startY, true);
-renderOptions();
+// Initialization is now handled in the DOMContentLoaded event listener above

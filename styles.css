@@ -61,6 +61,21 @@ body {
     }
 }
 
+.block.pulsing {
+    /* Animation is handled via JavaScript Web Animations API */
+    /* to properly handle rotation transforms on vertical blocks */
+}
+
+.period-block {
+    cursor: pointer !important;
+    transition: all 0.2s ease;
+}
+
+.period-block:hover {
+    transform: scale(1.2);
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+}
+
 .option-text {
     position: absolute;
     padding: 8px 12px;
@@ -93,4 +108,99 @@ body {
     letter-spacing: 1px;
     line-height: 1.6;
 }
- 
+
+/* Splash Screen */
+.splash-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+
+.splash-screen.hidden {
+    display: none;
+}
+
+.splash-content {
+    text-align: center;
+    color: #fff;
+}
+
+.splash-content h1 {
+    font-size: 72px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: -2px;
+    margin-bottom: 40px;
+    color: #FF006E;
+}
+
+.splash-instruction {
+    font-size: 20px;
+    margin-bottom: 40px;
+    text-transform: lowercase;
+    letter-spacing: -0.5px;
+}
+
+.recording-controls {
+    margin-bottom: 30px;
+}
+
+.record-btn {
+    font-family: 'PPModelPlastic-Medium', sans-serif;
+    font-size: 24px;
+    font-weight: 900;
+    text-transform: lowercase;
+    letter-spacing: -1px;
+    padding: 15px 30px;
+    background: #FF006E;
+    color: #000;
+    border: 3px solid #fff;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.record-btn:hover {
+    background: #FB5607;
+    transform: scale(1.05);
+}
+
+.record-btn:active {
+    transform: scale(0.95);
+}
+
+.recording-status {
+    margin-top: 20px;
+    font-size: 16px;
+    color: #fff;
+    min-height: 24px;
+}
+
+.continue-btn {
+    font-family: 'PPModelPlastic-Medium', sans-serif;
+    font-size: 28px;
+    font-weight: 900;
+    text-transform: lowercase;
+    letter-spacing: -1px;
+    padding: 20px 40px;
+    background: #3A86FF;
+    color: #000;
+    border: 3px solid #fff;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.continue-btn:hover {
+    background: #06FFC4;
+    transform: scale(1.05);
+}
+
+.continue-btn:active {
+    transform: scale(0.95);
+}
