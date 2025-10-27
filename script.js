@@ -64,15 +64,15 @@ async function startRecording() {
 
         mediaRecorder.start();
         document.getElementById('record-btn').style.display = 'none';
-        document.getElementById('recording-status').textContent = 'Recording... (1 second)';
+        document.getElementById('recording-status').textContent = 'Recording... (2 seconds)';
 
-        // Automatically stop recording after 1 second
+        // Automatically stop recording after 2 seconds
         setTimeout(function() {
             if (mediaRecorder && mediaRecorder.state !== 'inactive') {
                 mediaRecorder.stop();
                 document.getElementById('recording-status').textContent = 'Processing...';
             }
-        }, 1000);
+        }, 2000);
     } catch (error) {
         console.error('Error accessing microphone:', error);
         document.getElementById('recording-status').textContent = 'Error: Could not access microphone';

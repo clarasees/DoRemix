@@ -126,14 +126,15 @@ h1 {
 
 .instructions {
     position: fixed;
-    top: 20px;
-    left: 20px;
-    font-family: 'Courier New', monospace;
-    font-size: 11px;
+    top: 40px;
+    left: 40px;
+    font-family: 'Arial';
+    font-weight: regular;
+    font-size: 22px;
     color: white;
     text-transform: uppercase;
     letter-spacing: 1px;
-    line-height: 1.6;
+    line-height: 1.4;
 }
 
 /* Splash Screen */
