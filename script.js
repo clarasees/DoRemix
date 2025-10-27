@@ -55,7 +55,7 @@ async function startRecording() {
             const arrayBuffer = await audioBlob.arrayBuffer();
             audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
-            document.getElementById('recording-status').textContent = 'Recording saved! Click Continue to start.';
+            document.getElementById('recording-status').textContent = '';
             document.getElementById('continue-btn').style.display = 'block';
 
             // Stop all tracks to release the microphone
@@ -479,9 +479,10 @@ function addBlock(word, x, y, isHorizontal, isCompleted) {
         currentSentence.push(blockData);
     }
 
-    // Update canvas size to accommodate new block
+    // Update canvas size to accommodate new block and scroll to it
     setTimeout(function() {
         updateCanvasSize();
+        scrollToBlock(blockData);
     }, 50);
 
     return blockData;
@@ -515,6 +516,63 @@ function updateCanvasSize() {
     canvas.style.minHeight = (maxY - minY + padding) + 'px';
 }
 
+// Smoothly scroll to keep a block visible in the viewport
+function scrollToBlock(blockData) {
+    const block = blockData.element;
+    const rect = block.getBoundingClientRect();
+    const padding = 100; // Padding from viewport edge
+
+    // Calculate the block's actual position considering rotation
+    let blockRight, blockBottom;
+
+    if (blockData.isHorizontal) {
+        blockRight = rect.right;
+        blockBottom = rect.bottom;
+    } else {
+        // For vertical blocks, account for rotation
+        blockRight = rect.right;
+        blockBottom = rect.bottom;
+    }
+
+    // Calculate scroll positions
+    let scrollX = window.scrollX;
+    let scrollY = window.scrollY;
+    let needsScroll = false;
+
+    // Check if block extends beyond right edge
+    if (blockRight > window.innerWidth + window.scrollX - padding) {
+        scrollX = blockRight - window.innerWidth + padding;
+        needsScroll = true;
+    }
+
+    // Check if block extends beyond bottom edge
+    if (blockBottom > window.innerHeight + window.scrollY - padding) {
+        scrollY = blockBottom - window.innerHeight + padding;
+        needsScroll = true;
+    }
+
+    // Check if block is beyond left edge
+    if (rect.left < window.scrollX + padding) {
+        scrollX = Math.max(0, rect.left - padding);
+        needsScroll = true;
+    }
+
+    // Check if block is beyond top edge
+    if (rect.top < window.scrollY + padding) {
+        scrollY = Math.max(0, rect.top - padding);
+        needsScroll = true;
+    }
+
+    // Smooth scroll to the new position
+    if (needsScroll) {
+        window.scrollTo({
+            left: scrollX,
+            top: scrollY,
+            behavior: 'smooth'
+        });
+    }
+}
+
 function clearOptions() {
     optionElements.forEach(function(el) { el.remove(); });
     optionElements = [];
@@ -527,8 +585,11 @@ function renderOptions() {
 
     if (currentSentence.length === 0 || !isBuilding) return;
 
-    const options = getNextOptions();
-    if (options.length === 0) return;
+    let options = getNextOptions();
+    // If no options available, default to "and"
+    if (options.length === 0) {
+        options = ['and'];
+    }
 
     const lastBlock = currentSentence[currentSentence.length - 1];
     const lineHeight = 50;
@@ -558,7 +619,11 @@ function renderOptions() {
 }
 
 function selectOption() {
-    const options = getNextOptions();
+    let options = getNextOptions();
+    // If no options available, default to "and"
+    if (options.length === 0) {
+        options = ['and'];
+    }
     if (selectedIndex >= 0 && selectedIndex < options.length) {
         const word = options[selectedIndex];
         const lastBlock = currentSentence[currentSentence.length - 1];
@@ -625,7 +690,7 @@ async function endSentence() {
     const periodBlock = document.createElement('div');
     periodBlock.className = 'block completed period-block';
     periodBlock.textContent = '.';
-    periodBlock.style.backgroundColor = getColorForWord('period');
+    periodBlock.style.backgroundColor = '#fff';
     periodBlock.style.color = '#000';
     periodBlock.style.left = periodX + 'px';
     periodBlock.style.top = periodY + 'px';
@@ -719,7 +784,11 @@ document.addEventListener('keydown', function(e) {
 
     if (!isBuilding) return;
 
-    const options = getNextOptions();
+    let options = getNextOptions();
+    // If no options available, default to "and"
+    if (options.length === 0) {
+        options = ['and'];
+    }
 
     if (e.key === 'ArrowDown') {
         e.preventDefault();

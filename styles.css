@@ -1,3 +1,24 @@
+@font-face {
+    font-family: 'PPModelPlastic-Medium';
+    src: url('PPModelPlastic-Medium.otf') format('opentype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'PPModelPlasticLine-Medium';
+    src: url('PPModelPlasticLine-Medium.otf') format('opentype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'PPModelMono-Medium';
+    src: url('PPModelMono-Medium.otf') format('opentype');
+    font-weight: normal;
+    font-style: normal;
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -13,8 +34,8 @@ body {
     scroll-behavior: smooth;
 }
 
-h1 {  font-family: 'PPModelPlasticLine-Medium', sans-serif;
-
+h1 {
+    font-family: 'PPModelPlasticLine-Medium', sans-serif;
 }
 
 .canvas {
@@ -57,9 +78,11 @@ h1 {  font-family: 'PPModelPlasticLine-Medium', sans-serif;
     0% {
         transform: scale(0.95);
     }
+
     50% {
         transform: scale(1.02);
     }
+
     100% {
         transform: scale(1);
     }
@@ -107,7 +130,7 @@ h1 {  font-family: 'PPModelPlasticLine-Medium', sans-serif;
     left: 20px;
     font-family: 'Courier New', monospace;
     font-size: 11px;
-    color: #666;
+    color: white;
     text-transform: uppercase;
     letter-spacing: 1px;
     line-height: 1.6;
@@ -130,6 +153,7 @@ h1 {  font-family: 'PPModelPlasticLine-Medium', sans-serif;
 .splash-screen.hidden {
     display: none;
 }
+
 .splash-content {
     text-align: center;
     color: #000;
@@ -152,6 +176,8 @@ h1 {  font-family: 'PPModelPlasticLine-Medium', sans-serif;
 }
 
 .splash-instruction {
+      font-family: 'Courier New', monospace;
+    font-size: 11px;
     font-size: 20px;
     margin-bottom: 20px;
     text-transform: lowercase;
