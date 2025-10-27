@@ -127,12 +127,11 @@ async function generateAudioVariants() {
     }
 }
 
-// Get next note (semitone value) in sequence from current arpeggio pattern
-function getNextNote() {
+// Get note (semitone value) based on word length from current arpeggio pattern
+function getNoteForWord(word) {
     const currentPattern = arpeggioPatterns[currentArpeggioIndex];
-    const semitone = currentPattern[currentNoteIndex];
-    currentNoteIndex = (currentNoteIndex + 1) % currentPattern.length;
-    return semitone;
+    const noteIndex = word.length % currentPattern.length;
+    return currentPattern[noteIndex];
 }
 
 // Switch to next arpeggio pattern
@@ -174,24 +173,26 @@ function addPulseAnimation(element, isHorizontal) {
     return animation;
 }
 
-// Play back entire sentence as a melody (sequentially)
+// Play back entire sentence as a melody (sequentially with quantized rhythm)
 async function playSentenceMelody(sentenceBlocks) {
+    const noteDuration = 400; // Fixed duration for each note (quantized)
+
     for (let i = 0; i < sentenceBlocks.length; i++) {
         const block = sentenceBlocks[i];
 
         // Add pulse animation that respects rotation
         addPulseAnimation(block.element, block.isHorizontal);
 
-        // Play the note and wait for it to finish
+        // Play the note (doesn't wait for natural end)
+        playNoteAudio(block.noteSemitone);
+
+        // Wait for fixed duration (quantized rhythm)
         await new Promise(function(resolve) {
-            playNoteAudio(block.noteSemitone, function() {
+            setTimeout(function() {
                 block.element.classList.remove('pulsing');
                 resolve();
-            });
+            }, noteDuration);
         });
-
-        // Small gap between notes
-        await new Promise(resolve => setTimeout(resolve, 100));
     }
 }
 
@@ -387,7 +388,6 @@ let selectedIndex = 0;
 let optionElements = [];
 let isBuilding = true;
 let draggedWord = null;
-let currentNoteIndex = 0; // Track which note to use next in the arpeggio
 
 const colors = ['#FF006E', '#FB5607', '#FFBE0B', '#8338EC', '#3A86FF', '#06FFC4', '#00F5FF', '#FF2E63'];
 
@@ -441,8 +441,8 @@ function addBlock(word, x, y, isHorizontal, isCompleted) {
         block.style.transform = 'rotate(90deg)';
     }
 
-    // Assign the next note in the arpeggio sequence (semitone value)
-    const noteSemitone = isCompleted ? 0 : getNextNote();
+    // Assign note based on word length from current arpeggio pattern
+    const noteSemitone = isCompleted ? 0 : getNoteForWord(word);
 
     const blockData = {
         element: block,
@@ -479,17 +479,10 @@ function addBlock(word, x, y, isHorizontal, isCompleted) {
         currentSentence.push(blockData);
     }
 
-    // Auto-scroll to show the new block
+    // Update canvas size to accommodate new block
     setTimeout(function() {
-        // Ensure canvas is large enough to contain the block
         updateCanvasSize();
-
-        block.scrollIntoView({
-            behavior: 'smooth',
-            block: 'center',
-            inline: 'center'
-        });
-    }, 100);
+    }, 50);
 
     return blockData;
 }
@@ -498,20 +491,28 @@ function updateCanvasSize() {
     const canvas = document.getElementById('canvas');
     const blocks = canvas.querySelectorAll('.block');
 
+    let minX = 0;
+    let minY = 0;
     let maxX = window.innerWidth;
     let maxY = window.innerHeight;
 
     blocks.forEach(function(block) {
         const rect = block.getBoundingClientRect();
-        const blockRight = block.offsetLeft + rect.width + 200; // Add margin
-        const blockBottom = block.offsetTop + rect.height + 200; // Add margin
 
+        const blockLeft = block.offsetLeft;
+        const blockTop = block.offsetTop;
+        const blockRight = blockLeft + rect.width;
+        const blockBottom = blockTop + rect.height;
+
+        if (blockLeft < minX) minX = blockLeft;
+        if (blockTop < minY) minY = blockTop;
         if (blockRight > maxX) maxX = blockRight;
         if (blockBottom > maxY) maxY = blockBottom;
     });
 
-    canvas.style.minWidth = maxX + 'px';
-    canvas.style.minHeight = maxY + 'px';
+    const padding = 200; // Add padding around content
+    canvas.style.minWidth = (maxX - minX + padding) + 'px';
+    canvas.style.minHeight = (maxY - minY + padding) + 'px';
 }
 
 function clearOptions() {
@@ -570,7 +571,7 @@ function selectOption() {
         if (currentSentence.length === 1) {
             newIsHorizontal = true;
         } else {
-            // Continue in same direction by default, unless it would go off screen
+            // Continue in same direction by default
             newIsHorizontal = lastBlock.isHorizontal;
         }
 
@@ -648,15 +649,10 @@ async function endSentence() {
 
     document.getElementById('canvas').appendChild(periodBlock);
 
-    // Auto-scroll to show the period
+    // Update canvas size to accommodate period
     setTimeout(function() {
         updateCanvasSize();
-        periodBlock.scrollIntoView({
-            behavior: 'smooth',
-            block: 'center',
-            inline: 'center'
-        });
-    }, 100);
+    }, 50);
 
     isBuilding = false;
     clearOptions();
@@ -675,7 +671,6 @@ function startNewSentence(word, x, y) {
     isBuilding = true;
     currentSentence = [];
     selectedIndex = 0;
-    currentNoteIndex = 0; // Reset note sequence for new sentence
     const newBlock = addBlock(word, x, y, true);
 
     // Play audio for the dragged word with pulse animation
@@ -692,9 +687,6 @@ function undo() {
         const lastBlock = currentSentence.pop();
         lastBlock.element.remove();
         selectedIndex = 0;
-        // Move note index back so next word uses the correct note
-        const currentPattern = arpeggioPatterns[currentArpeggioIndex];
-        currentNoteIndex = (currentNoteIndex - 1 + currentPattern.length) % currentPattern.length;
         renderOptions();
     }
 }
