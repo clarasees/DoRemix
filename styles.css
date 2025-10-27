@@ -10,6 +10,11 @@ body {
     color: #000;
     min-height: 100vh;
     overflow: auto;
+    scroll-behavior: smooth;
+}
+
+h1 {  font-family: 'PPModelPlasticLine-Medium', sans-serif;
+
 }
 
 .canvas {
@@ -125,44 +130,61 @@ body {
 .splash-screen.hidden {
     display: none;
 }
-
 .splash-content {
     text-align: center;
-    color: #fff;
+    color: #000;
+    background: #fff;
+    padding: 60px 80px;
+    border: 4px solid #000;
+    position: relative;
 }
 
 .splash-content h1 {
     font-size: 72px;
-    font-weight: 900;
-    text-transform: uppercase;
+    font-weight: 500;
     letter-spacing: -2px;
-    margin-bottom: 40px;
-    color: #FF006E;
+    color: #fff;
+    position: absolute;
+    top: -80px;
+    left: 0px;
+    margin: 0;
+    z-index: 1;
 }
 
 .splash-instruction {
     font-size: 20px;
-    margin-bottom: 40px;
+    margin-bottom: 20px;
     text-transform: lowercase;
     letter-spacing: -0.5px;
+    margin-top: 50px;
+    text-align: left;
 }
 
 .recording-controls {
-    margin-bottom: 30px;
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
 }
 
 .record-btn {
     font-family: 'PPModelPlastic-Medium', sans-serif;
-    font-size: 24px;
-    font-weight: 900;
-    text-transform: lowercase;
     letter-spacing: -1px;
-    padding: 15px 30px;
-    background: #FF006E;
+    padding: none;
+    background: #FF0000;
     color: #000;
-    border: 3px solid #fff;
+    border: 3px solid #000;
+    border-radius: 12px;
     cursor: pointer;
     transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.record-btn .mic-icon {
+    width: 60px;
+    height: 60px;
+    display: block;
 }
 
 .record-btn:hover {
@@ -175,10 +197,11 @@ body {
 }
 
 .recording-status {
-    margin-top: 20px;
+    margin-top: 10px;
     font-size: 16px;
-    color: #fff;
+    color: #000;
     min-height: 24px;
+    text-align: center;
 }
 
 .continue-btn {
@@ -190,9 +213,12 @@ body {
     padding: 20px 40px;
     background: #3A86FF;
     color: #000;
-    border: 3px solid #fff;
+    border: 3px solid #000;
     cursor: pointer;
     transition: all 0.2s;
+    display: block;
+    margin: 20px auto 0 auto;
+    text-align: center;
 }
 
 .continue-btn:hover {
